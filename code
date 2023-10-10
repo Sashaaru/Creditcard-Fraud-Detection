@@ -1,0 +1,82 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from imblearn.over_sampling import SMOTE
+
+data = pd.read_csv("C:\\Users\\rameshr\\PycharmProjects\\Credit card Fraud\\creditcard.csv")
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Check for missing values
+missing_values = data.isnull().sum()
+
+# Handle imbalanced data using SMOTE (Synthetic Minority Over-sampling Technique)
+X = data.drop('Class', axis=1)
+y = data['Class']
+oversampler = SMOTE(sampling_strategy=0.5)
+X_resampled, y_resampled = oversampler.fit_resample(X, y)
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
+
+# Standardize features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+from sklearn.decomposition import PCA
+
+# Apply PCA with the desired number of components
+n_components = 10  # Adjust this based on your needs
+pca = PCA(n_components=n_components)
+X_pca = pca.fit_transform(X_scaled)
+# Calculate the explained variance ratio
+explained_variance_ratio = pca.explained_variance_ratio_
+
+# Print the explained variance ratio for each component
+for i, var_ratio in enumerate(explained_variance_ratio):
+    print(f"Explained Variance Ratio for Component {i + 1}: {var_ratio:.4f}")
+
+
+logistic_model = LogisticRegression()
+logistic_model.fit(X_train_pca, y_train)
+y_pred_logistic = logistic_model.predict(X_test_pca)
+
+# Calculate the cumulative explained variance
+cumulative_explained_variance = np.cumsum(explained_variance_ratio)
+
+plt.plot(range(1, n_components + 1), cumulative_explained_variance, marker='o', linestyle='--')
+plt.xlabel('Number of Components')
+plt.ylabel('Cumulative Explained Variance')
+plt.title('Cumulative Explained Variance vs. Number of Components')
+plt.show()
+
+svc_model = SVC()
+svc_model.fit(X_train_pca, y_train)
+y_pred_svc = svc_model.predict(X_test_pca)
+
+tree_model = DecisionTreeClassifier()
+tree_model.fit(X_train_pca, y_train)
+y_pred_tree = tree_model.predict(X_test_pca)
+
+def evaluate_model(model_name, y_true, y_pred):
+    accuracy = accuracy_score(y_true, y_pred)
+    confusion = confusion_matrix(y_true, y_pred)
+    report = classification_report(y_true, y_pred)
+    
+    print(f"Model: {model_name}")
+    print(f"Accuracy: {accuracy:.2f}")
+    print(f"Confusion Matrix:\n{confusion}")
+    print(f"Classification Report:\n{report}")
+
+evaluate_model("Logistic Regression", y_test, y_pred_logistic)
+evaluate_model("SVC", y_test, y_pred_svc)
+evaluate_model("Decision Tree", y_test, y_pred_tree)
